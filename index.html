@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>skyer 『Claude Code』爆速開発PJ マイルストーン</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        .task-list-scroll::-webkit-scrollbar { width: 6px; }
+        .task-list-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .task-list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .task-list-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .task-checkbox:checked + div .task-title {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .subtask-checkbox:checked + span {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .task-details {
+            display: none;
+            overflow: hidden;
+        }
+        .task-details.open {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chevron { transition: transform 0.3s ease; }
+        .chevron.open { transform: rotate(180deg); }
+        
+        .prompt-kw {
+            background-color: #f8fafc;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            border: 1px solid #e2e8f0;
+            font-family: monospace;
+            color: #db2777; 
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .note-text {
+            font-size: 0.8em;
+            color: #64748b;
+            display: block;
+            margin-top: 0.2rem;
+            margin-left: 1.5rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        
+        <header class="mb-8 bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+                <span class="inline-block px-3 py-1 mb-3 text-xs font-bold text-blue-700 bg-blue-100 rounded-full">新卒・未経験向け 実行ガイド</span>
+                <h1 class="text-3xl font-black text-slate-900 mb-2">skyer 『Claude Code』爆速開発PJ マイルストーン</h1>
+                <p class="text-slate-600 text-sm md:text-base max-w-3xl leading-relaxed">
+                    入社おめでとうございます！このプロジェクトの主役はあなたです。<br>
+                    プログラミングやITの専門知識は**今の時点では不要**です。分からない単語、エラー、営業のやり方、すべて「AI（Claude）に聞いて解決する」スタンスで進めてください。このリストの通りに手を動かせば、6月末には「売上500万を作るITコンサルタント兼エンジニア」に成長しています。
+                </p>
+            </div>
+            <div class="mt-6 md:mt-0 bg-white border-2 border-blue-200 rounded-xl p-5 text-center min-w-[220px] shadow-sm">
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">プロジェクト達成率</p>
+                <div class="text-4xl font-black text-blue-600" id="overall-progress-text">0%</div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 mt-3">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full transition-all duration-700 ease-out" id="overall-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            
+            <div class="xl:col-span-2 space-y-6">
+                
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">▶ 今月のミッションを選択</h2>
+                    <div class="flex flex-col sm:flex-row justify-between relative">
+                        <div class="hidden sm:block absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 z-0"></div>
+                        
+                        <button onclick="selectPhase('march')" id="btn-march" class="phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-blue-600 bg-blue-50 text-blue-800 shadow-md">
+                            <div class="text-xs text-blue-500 mb-1 font-bold">Phase 1 (3月 W4-W5)</div>
+                            <div>相棒(AI)のセットアップ</div>
+                        </button>
+                        
+                        <button onclick="selectPhase('april')" id="btn-april" class="phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-slate-200 bg-white text-slate-500 hover:border-blue-300">
+                            <div class="text-xs text-slate-400 mb-1 font-bold">Phase 2 (4月 W1-W4)</div>
+                            <div>初商材づくりと初営業</div>
+                        </button>
+                        
+                        <button onclick="selectPhase('may')" id="btn-may" class="phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-slate-200 bg-white text-slate-500 hover:border-blue-300">
+                            <div class="text-xs text-slate-400 mb-1 font-bold">Phase 3 (5月 W1-W4)</div>
+                            <div>大型案件の提案と開発</div>
+                        </button>
+
+                        <button onclick="selectPhase('june')" id="btn-june" class="phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-slate-200 bg-white text-slate-500 hover:border-blue-300">
+                            <div class="text-xs text-slate-400 mb-1 font-bold">Phase 4 (6月 W1-W4)</div>
+                            <div>納品・保守・目標達成！</div>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-[800px]">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800" id="wbs-title">Phase Title</h2>
+                            <p class="text-sm text-slate-600 mt-2 max-w-2xl" id="wbs-desc">Phase Description</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-black text-slate-700" id="wbs-hours">0.0h</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">想定作業時間</div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-0 flex-1 overflow-y-auto task-list-scroll bg-white rounded-b-xl" id="task-container">
+                        </div>
+                </section>
+
+            </div>
+
+            <div class="xl:col-span-1 space-y-6">
+                
+                <section class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-6 text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 text-slate-700 opacity-30 text-9xl">🧠</div>
+                    <h3 class="text-lg font-bold flex items-center mb-4 text-emerald-400 relative z-10">
+                        <span class="mr-2">🚀</span> 新人向け・AI開発の鉄則
+                    </h3>
+                    <p class="text-sm text-slate-300 leading-relaxed mb-4 relative z-10">
+                        プログラミングスキルは不要です。「AIに上手にお願いするスキル」だけを磨いてください。
+                    </p>
+                    <ul class="text-sm space-y-4 text-slate-300 relative z-10">
+                        <li class="flex items-start bg-slate-700/50 p-3 rounded-lg">
+                            <span class="text-emerald-400 mr-2 text-lg font-bold">1.</span> 
+                            <div>
+                                <b class="text-white">エラーは自力で考えない</b><br>
+                                <span class="text-xs text-slate-400">赤い英語のエラーが出たら、全てコピーしてClaudeに「エラーが出ました。原因と直し方を素人向けに教えて」と貼り付けるだけ。</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start bg-slate-700/50 p-3 rounded-lg">
+                            <span class="text-emerald-400 mr-2 text-lg font-bold">2.</span> 
+                            <div>
+                                <b class="text-white">わからない単語も全て聞く</b><br>
+                                <span class="text-xs text-slate-400">「APIって何？」「Node.jsって何？」と、ググる前にまずClaudeに聞く癖をつけてください。</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start bg-slate-700/50 p-3 rounded-lg border border-emerald-500/30">
+                            <span class="text-emerald-400 mr-2 text-lg font-bold">3.</span> 
+                            <div>
+                                <b class="text-emerald-300">機密情報だけは絶対に入力しない！</b><br>
+                                <span class="text-xs text-slate-400">顧客の個人情報（名前、電話番号など）や、パスワードだけは、絶対にAIの画面に貼り付けないでください。これだけが唯一のルールです。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h3 class="text-md font-bold text-slate-800 mb-1">あなたの時間の使い方 (目安)</h3>
+                    <div class="chart-container" style="height: 220px;">
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h3 class="text-md font-bold text-slate-800 mb-1">売上目標 (6月で500万円!)</h3>
+                    <div class="chart-container" style="height: 220px;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const projectData = {
+            march: {
+                title: "3月: 相棒（AI）のセットアップと操作練習",
+                desc: "プログラミングの第一歩です。黒い画面（ターミナル）を使って、Claude Codeという超強力なAIアシスタントをあなたのPCに住まわせます。焦らず、手順通りに進めましょう。",
+                tasks: [
+                    { 
+                        id: "m1", 
+                        title: "黒い画面(ターミナル)の準備とAIのインストール", 
+                        weeks: "3月 W4",
+                        hours: 6.0, 
+                        category: "Dev", 
+                        security: false,
+                        subtasks: [
+                            { id: "m1_1", text: "Macなら「ターミナル」、Windowsなら「コマンドプロンプト」というアプリを開きます。<span class='note-text'>※これがエンジニアの基本ツールです。</span>" },
+                            { id: "m1_2", text: "WebのChatGPTやClaudeに「<span class='prompt-kw'>Node.jsをインストールしたいです。Mac(またはWindows)での一番簡単な手順を教えて</span>」と聞き、その通りにインストールします。" },
+                            { id: "m1_3", text: "ターミナルに <span class='prompt-kw'>npm install -g @anthropic-ai/claude-code</span> と貼り付けてEnterキーを押します（AIがPCに入ります）。" },
+                            { id: "m1_4", text: "ターミナルに <span class='prompt-kw'>claude auth</span> と打ち込み、エンターキーを押します。" },
+                            { id: "m1_5", text: "ブラウザが自動で開くので、Claudeのアカウントでログインし連携を許可します。<span class='note-text'>※もし利用時にエラーが出る場合は、API用のクレジットカード登録(従量課金)が必要です。社長に相談しましょう。</span>" }
+                        ],
+                        resources: [
+                            { type: "YouTube", title: "【初心者向け】ターミナル・コマンドプロンプトの基本的な使い方", url: "https://www.youtube.com/results?search_query=%E3%82%BF%E3%83%BC%E3%83%9F%E3%83%8A%E3%83%AB+%E5%88%9D%E5%BF%83%E8%80%85" }
+                        ]
+                    },
+                    { 
+                        id: "m2", 
+                        title: "AIに指示を出す練習（プロンプト訓練）", 
+                        weeks: "3月 W4-W5",
+                        hours: 6.0, 
+                        category: "Dev", 
+                        security: false,
+                        subtasks: [
+                            { id: "m2_1", text: "デスクトップに「練習用」という空のフォルダ（ディレクトリと呼びます）を作ります。" },
+                            { id: "m2_2", text: "ターミナルでそのフォルダに移動します。<span class='note-text'>※移動コマンドが分からなければAIに「デスクトップの練習用フォルダにターミナルで移動するには？」と聞く</span>" },
+                            { id: "m2_3", text: "移動できたら、ターミナルで <span class='prompt-kw'>claude</span> と打ってEnter。これでAIとおしゃべりできる状態になります！" },
+                            { id: "m2_4", text: "AIに「<span class='prompt-kw'>簡単なTODOリストアプリのコードを作って。ファイルも自動で作ってね</span>」と入力し、AIが勝手にファイルを作るのを眺めます。" },
+                            { id: "m2_5", text: "【超重要】エラーが出た練習: わざと適当な文字を入力してエラーを出し、その赤い文字をコピーしてAIに「<span class='prompt-kw'>このエラー直して</span>」と丸投げしてみましょう。" }
+                        ],
+                        resources: [
+                            { type: "Article", title: "AIへの上手な指示の出し方（プロンプトのコツ）", url: "#" }
+                        ]
+                    },
+                    { 
+                        id: "m3", 
+                        title: "【重要】ファイル管理と「絶対に守るべきセキュリティルール」", 
+                        weeks: "3月 W5",
+                        hours: 4.0, 
+                        category: "Security", 
+                        security: true,
+                        subtasks: [
+                            { id: "m3_1", text: "フォルダの中に <span class='prompt-kw'>project_rules.md</span> というテキストファイルを作ります。" },
+                            { id: "m3_2", text: "そのファイルに「<span class='prompt-kw'>あなたは優秀なITコンサルです。コードを書く時は初心者にもわかるようにコメントをたくさん書いてください。</span>」と保存します。これがAIの性格設定になります。" },
+                            { id: "m3_3", text: "【絶対ルール】フォルダに <span class='prompt-kw'>.claudesignore</span> (最初のドットに注意) というファイルを作ります。" },
+                            { id: "m3_4", text: "そのファイルの中に「<span class='prompt-kw'>*.csv</span>」「<span class='prompt-kw'>.env</span>」とだけ書いて保存します。<span class='note-text'>※これで、顧客の大事なデータ(CSV)をAIが勝手に読み込まなくなります。超重要！</span>" }
+                        ],
+                        resources: [
+                            { type: "Doc", title: "新人エンジニアが最初に覚えるべきセキュリティの基本", url: "#" }
+                        ]
+                    },
+                    { 
+                        id: "m4", 
+                        title: "会社のルールブック（セキュリティ方針）の作成", 
+                        weeks: "3月 W5",
+                        hours: 4.0, 
+                        category: "Planning", 
+                        security: true,
+                        subtasks: [
+                            { id: "m4_1", text: "WebのClaudeに「<span class='prompt-kw'>私は新入社員です。自社でAIを使ったシステム開発事業を始めるにあたり、顧客を安心させるための『情報セキュリティ基本方針書』のドラフトを作ってください</span>」とお願いします。" },
+                            { id: "m4_2", text: "同じく「<span class='prompt-kw'>顧客と結ぶ『秘密保持契約書(NDA)』の雛形も作ってください</span>」とお願いし、Wordなどにコピペして社長に確認してもらいます。" }
+                        ],
+                        resources: [
+                            { type: "Template", title: "ビジネス用語がわからなくてもAIが作ってくれるテンプレート集", url: "#" }
+                        ]
+                    }
+                ]
+            },
+            april: {
+                title: "4月: 初商材づくりと初営業（まずは売ってみる！）",
+                desc: "AIを使って、プログラミング不要で作れる「業務自動化ツール」をパパッと作ります。そしてそれを武器に、地方の社長さんたちに人生初の営業をかけます。",
+                tasks: [
+                    { 
+                        id: "a1", 
+                        title: "売るための商品(自動化ツール)を作る", 
+                        weeks: "4月 W1-W2",
+                        hours: 12.0, 
+                        category: "Dev", 
+                        security: false, 
+                        subtasks: [
+                            { id: "a1_1", text: "【商品A: GAS】WebのClaudeに「<span class='prompt-kw'>プログラミング素人です。Googleフォームの回答が来たら、Slackに自動で通知がいくGAS（Google Apps Script）のコードと、設定手順を1から丁寧に教えて</span>」と聞きます。" }, 
+                            { id: "a1_2", text: "教えてもらった通りにコピペして設定し、自分でフォームに入力してSlackに通知が来るかテストします。" },
+                            { id: "a1_3", text: "【商品B: Excel VBA】Claudeに「<span class='prompt-kw'>請求書Excelから、会社名と金額だけを別のExcelに自動でまとめるVBA(マクロ)のコードと使い方を教えて</span>」と聞き、手元のExcelで試します。" }
+                        ], 
+                        resources: [{ type: "YouTube", title: "「GAS Slack連携 初心者」でYouTube検索して動画を見る", url:"https://www.youtube.com/results?search_query=GAS+Slack%E9%80%A3%E6%90%BA+%E5%88%9D%E5%BF%83%E8%80%85" }] 
+                    },
+                    { 
+                        id: "a2", 
+                        title: "営業用のチラシ(LP)とアンケートを作る", 
+                        weeks: "4月 W1-W2",
+                        hours: 8.0, 
+                        category: "Marketing", 
+                        security: false, 
+                        subtasks: [
+                            { id: "a2_1", text: "Claudeに「<span class='prompt-kw'>地方の中小企業の社長向け。会社のIT化(DX)の遅れに気づかせるための『無料DX診断チェックリスト』の質問を10個考えて</span>」と指示し、Googleフォームで作ります。" },
+                            { id: "a2_2", text: "Claudeに「<span class='prompt-kw'>業務自動化ツールの営業用Webページ(LP)のキャッチコピーと文章を考えて</span>」と指示します。" },
+                            { id: "a2_3", text: "「ペライチ」などの無料サービスに登録し、Claudeが作った文章をコピペしてWebページを完成させます。" }
+                        ], 
+                        resources: [{ type: "Doc", title: "ペライチ等のノーコードツール アカウント作成", url:"#" }] 
+                    },
+                    { 
+                        id: "a3", 
+                        title: "社長さんへのアプローチ(営業活動)", 
+                        weeks: "4月 W3-W4",
+                        hours: 15.0, 
+                        category: "Sales", 
+                        security: false, 
+                        subtasks: [
+                            { id: "a3_1", text: "Claudeに「<span class='prompt-kw'>商工会議所の企業に送る、無料DX診断の案内メール(またはFAX)の文章を作って。新卒らしい熱意と丁寧さを入れて</span>」と指示します。" }, 
+                            { id: "a3_2", text: "リストアップした企業にメール等を送り、返信が来たらZoom等で商談を設定します。" },
+                            { id: "a3_3", text: "商談では、自分で作った商品A(Slack通知)の実演を見せ、「<span class='prompt-kw'>これと同じものを御社用に数万円ですぐ作ります！</span>」と元気よく提案します。" }
+                        ], 
+                        resources: [{ type: "YouTube", title: "「新人 営業の基本」でYouTube検索", url:"https://www.youtube.com/results?search_query=%E6%96%B0%E4%BA%BA+%E5%96%B6%E6%A5%AD%E3%81%AE%E5%9F%BA%E6%9C%AC" }] 
+                    },
+                    { 
+                        id: "a4", 
+                        title: "受注したツールの納品（お客様対応）", 
+                        weeks: "4月 W3-W4",
+                        hours: 10.0, 
+                        category: "Business", 
+                        security: false, 
+                        subtasks: [
+                            { id: "a4_1", text: "注文をもらったら、お客様から実際のExcelフォーマット等をもらいます。（※個人情報は消してもらうようお願いします）" }, 
+                            { id: "a4_2", text: "Claudeに「<span class='prompt-kw'>この新しいフォーマットに合わせて、先日のVBAコードを書き換えて</span>」とお願いし、カスタマイズします。" },
+                            { id: "a4_3", text: "Zoomでお客様と画面共有しながら納品します。動かなければ「少々お待ちください！」と言って、裏でClaudeにエラーを投げて即修正します。" }
+                        ], 
+                        resources: [{ type: "Article", title: "お客様に喜ばれるコミュニケーションのコツ", url:"#" }] 
+                    }
+                ]
+            },
+            may: {
+                title: "5月: 大型案件の提案と、本格的なシステム開発",
+                desc: "4月で信頼してくれたお客様に、「もっと便利なシステムを作りませんか？」と提案し、数十万円〜の大型案件（バックエンド開発）に挑戦します。ここでもClaude Codeが全部コードを書いてくれます。",
+                tasks: [
+                    { 
+                        id: "ma1", 
+                        title: "もっと便利なシステムの提案（アップセル）", 
+                        weeks: "5月 W1-W2",
+                        hours: 15.0, 
+                        category: "Sales", 
+                        security: false, 
+                        subtasks: [
+                            { id: "ma1_1", text: "4月のお客様に「ツール使えてますか？」と連絡し、「<span class='prompt-kw'>販売管理システム(基幹)のデータも自動で集計できるようにしませんか？</span>」と提案します。" }, 
+                            { id: "ma1_2", text: "Claudeに「<span class='prompt-kw'>IT素人のお客様向けに、基幹システムからCSVを出力してクラウドでグラフ化するシステムの提案書構成を作って</span>」と指示します。" },
+                            { id: "ma1_3", text: "提案書を持参し、本開発の見積もりを提示します。" }
+                        ], 
+                        resources: [{ type: "YouTube", title: "「ITコンサル 提案の仕方」で検索", url:"#" }] 
+                    },
+                    { 
+                        id: "ma2", 
+                        title: "【重要】データの安全対策（マスキングとインフラ）", 
+                        weeks: "5月 W2-W3",
+                        hours: 10.0, 
+                        category: "Security", 
+                        security: true, 
+                        subtasks: [
+                            { id: "ma2_1", text: "Claudeに「<span class='prompt-kw'>Pythonで、CSVの中の個人情報(名前・電話)を『***』に変換(マスキング)するコードを素人向けに教えて</span>」と指示します。" }, 
+                            { id: "ma2_2", text: "【絶対ルール】お客様から貰った生データは絶対にそのまま使わず、必ずこのプログラムで「***」に変換してから開発に使います。" },
+                            { id: "ma2_3", text: "Claudeに「<span class='prompt-kw'>AWS(クラウド)で安全なサーバーを作るための専門用語を、小学生でもわかるように解説して</span>」と聞き、インフラの基礎を学びます。" }
+                        ], 
+                        resources: [{ type: "Article", title: "個人情報保護法とマスキング処理の基本", url:"#" }] 
+                    },
+                    { 
+                        id: "ma3", 
+                        title: "本格システム開発(バックエンド) 前半", 
+                        weeks: "5月 W3-W4",
+                        hours: 20.0, 
+                        category: "Dev", 
+                        security: false, 
+                        subtasks: [
+                            { id: "ma3_1", text: "ターミナル（Claude Code）を開き、「<span class='prompt-kw'>要件に合わせて、FastAPI(Python)で裏側のシステム(API)のコードを全て書いて</span>」と丸投げします。" },
+                            { id: "ma3_2", text: "「<span class='prompt-kw'>データベース(DB)を作るためのコード(SQL)も書いて。実行の仕方もステップバイステップで教えて</span>」と指示します。" },
+                            { id: "ma3_3", text: "エラーが出たら、焦らずターミナルの赤い文字をコピーしてClaudeに貼り付けます。" }
+                        ], 
+                        resources: [{ type: "YouTube", title: "「APIとは」「データベースとは」で検索し、概念だけ理解する", url:"#" }] 
+                    }
+                ]
+            },
+            june: {
+                title: "6月: 納品・保守・売上目標500万達成！",
+                desc: "作ったシステムを完成させて納品します。同時に「毎月のサポート契約（保守）」を結び、もし500万の目標に届かなければ、すぐに作れるツールを追加で売りにいきます。",
+                tasks: [
+                    { 
+                        id: "j1", 
+                        title: "本格システム開発(バックエンド) 後半", 
+                        weeks: "6月 W1-W2",
+                        hours: 15.0, 
+                        category: "Dev", 
+                        security: false, 
+                        subtasks: [
+                            { id: "j1_1", text: "Claude Codeに「<span class='prompt-kw'>もしデータベースの接続が切れたり、変なデータが入力されたりした時に、システムが落ちないようにするコード(例外処理)を追加して</span>」と指示します。" }, 
+                            { id: "j1_2", text: "「<span class='prompt-kw'>パスワードを入れた人だけが見れるように、ログイン機能のコードを追加して</span>」と指示します。" }
+                        ], 
+                        resources: [{ type: "Doc", title: "Webシステムのセキュリティ基礎", url:"#" }] 
+                    },
+                    { 
+                        id: "j2", 
+                        title: "システムのテストと、お客様向けマニュアル作成", 
+                        weeks: "6月 W2-W3",
+                        hours: 10.0, 
+                        category: "Business", 
+                        security: false, 
+                        subtasks: [
+                            { id: "j2_1", text: "Claude Codeに「<span class='prompt-kw'>今作ったプログラムが正しく動くか、自動でテストするプログラム(pytest等)を書いて、実行して</span>」と指示します。" }, 
+                            { id: "j2_2", text: "Claudeに「<span class='prompt-kw'>ITが苦手なお客様向けに、このシステムの使い方のマニュアル文章を作って。画像を入れる場所も指定して</span>」と指示します。" },
+                            { id: "j2_3", text: "お客様と一緒にシステムを操作し、「完成です！」とハンコ（検収印）をもらいます。" }
+                        ], 
+                        resources: [{ type: "Article", title: "わかりやすいマニュアルの作り方", url:"#" }] 
+                    },
+                    { 
+                        id: "j3", 
+                        title: "毎月のサポート契約（保守）を結ぶ", 
+                        weeks: "6月 W3-W4",
+                        hours: 5.0, 
+                        category: "Planning", 
+                        security: false, 
+                        subtasks: [
+                            { id: "j3_1", text: "Claudeに「<span class='prompt-kw'>システム納品後の、月額数万円の保守・サポート契約書のドラフトを作って</span>」と指示します。" }, 
+                            { id: "j3_2", text: "お客様に「<span class='prompt-kw'>今後のちょっとした変更や、エラー対応のために、月額保守プランに入りませんか？</span>」と提案し、契約をもらいます（ストック収益になります）。" }
+                        ], 
+                        resources: [{ type: "Article", title: "保守契約とは？IT業界のストックビジネス", url:"#" }] 
+                    },
+                    { 
+                        id: "j4", 
+                        title: "【重要】目標500万円に足りない時の緊急アクション", 
+                        weeks: "6月 W3-W4",
+                        hours: 8.0, 
+                        category: "Sales", 
+                        security: false, 
+                        subtasks: [
+                            { id: "j4_1", text: "6月中旬に売上を計算し、500万円に足りていない額を確認します。" }, 
+                            { id: "j4_2", text: "足りない場合、4月に作った簡単なツール(GAS等)をパッケージにし、断られたお客様に「<span class='prompt-kw'>期末特別割引ですぐ導入できます！</span>」と再度メールします。" },
+                            { id: "j4_3", text: "注文が入ったら、残業してでもClaudeをフル回転させて即納し、意地でも500万円を達成します！" }
+                        ], 
+                        resources: [{ type: "YouTube", title: "「営業 目標達成への執念」で検索し、マインドセットを高める", url:"#" }] 
+                    }
+                ]
+            }
+        };
+
+        let currentPhase = 'march';
+        const taskCompletion = {};
+        const subtaskCompletion = {};
+        let chartsObj = {};
+        const STORAGE_KEY = 'skyerRoadmapState_v1';
+
+        // 1. 初期状態をセット (すべて未完了)
+        Object.values(projectData).forEach(phase => {
+            phase.tasks.forEach(task => {
+                taskCompletion[task.id] = false;
+                if(task.subtasks) {
+                    task.subtasks.forEach(st => {
+                        subtaskCompletion[st.id] = false;
+                    });
+                }
+            });
+        });
+
+        // 2. ブラウザの保存データ（LocalStorage）を読み込む関数
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // 保存されているデータを上書き
+                    if (parsed.taskCompletion) Object.assign(taskCompletion, parsed.taskCompletion);
+                    if (parsed.subtaskCompletion) Object.assign(subtaskCompletion, parsed.subtaskCompletion);
+                } catch (e) {
+                    console.error("データの読み込みに失敗しました", e);
+                }
+            }
+        }
+
+        // 3. ブラウザにデータを保存する関数
+        function saveState() {
+            const stateToSave = {
+                taskCompletion: taskCompletion,
+                subtaskCompletion: subtaskCompletion
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        }
+
+        // ロード処理を実行
+        loadState();
+
+        function updateOverallProgress() {
+            const allTasks = Object.values(projectData).flatMap(p => p.tasks);
+            const totalHours = allTasks.reduce((sum, task) => sum + task.hours, 0);
+            let completedHours = 0;
+            allTasks.forEach(task => {
+                if(taskCompletion[task.id]) completedHours += task.hours;
+            });
+            const percentage = totalHours === 0 ? 0 : Math.round((completedHours / totalHours) * 100);
+            document.getElementById('overall-progress-text').innerText = `${percentage}%`;
+            document.getElementById('overall-progress-bar').style.width = `${percentage}%`;
+        }
+
+        window.toggleTask = function(taskId, event) {
+            event.stopPropagation();
+            taskCompletion[taskId] = !taskCompletion[taskId];
+            const task = Object.values(projectData).flatMap(p => p.tasks).find(t => t.id === taskId);
+            if(task && task.subtasks) {
+                task.subtasks.forEach(st => {
+                    subtaskCompletion[st.id] = taskCompletion[taskId];
+                    const cb = document.getElementById(`sub-${st.id}`);
+                    if(cb) cb.checked = taskCompletion[taskId];
+                });
+            }
+            updateOverallProgress();
+            saveState(); // チェックしたら保存
+        };
+
+        window.toggleSubtask = function(subtaskId, taskId, event) {
+            event.stopPropagation();
+            subtaskCompletion[subtaskId] = !subtaskCompletion[subtaskId];
+            const task = Object.values(projectData).flatMap(p => p.tasks).find(t => t.id === taskId);
+            const allComplete = task.subtasks.every(st => subtaskCompletion[st.id]);
+            if (allComplete !== taskCompletion[taskId]) {
+                taskCompletion[taskId] = allComplete;
+                document.getElementById(`task-${taskId}`).checked = allComplete;
+            }
+            updateOverallProgress();
+            saveState(); // チェックしたら保存
+        };
+
+        window.toggleDetails = function(taskId) {
+            const detailsDiv = document.getElementById(`details-${taskId}`);
+            const chevron = document.getElementById(`chevron-${taskId}`);
+            document.querySelectorAll('.task-details').forEach(el => {
+                if(el.id !== `details-${taskId}`) {
+                    el.classList.remove('open');
+                    document.getElementById(el.id.replace('details-', 'chevron-')).classList.remove('open');
+                }
+            });
+            detailsDiv.classList.toggle('open');
+            chevron.classList.toggle('open');
+        };
+
+        function renderTasks(phaseKey) {
+            const container = document.getElementById('task-container');
+            container.innerHTML = ''; 
+            const data = projectData[phaseKey];
+            document.getElementById('wbs-title').innerText = data.title;
+            document.getElementById('wbs-desc').innerText = data.desc;
+            const totalPhaseHours = data.tasks.reduce((sum, t) => sum + t.hours, 0);
+            document.getElementById('wbs-hours').innerText = `${totalPhaseHours.toFixed(1)}h`;
+
+            data.tasks.forEach(task => {
+                const isChecked = taskCompletion[task.id] ? 'checked' : '';
+                const securityBadge = task.security ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-700 ml-2 border border-pink-200">🚨 要確認(セキュリティ)</span>` : '';
+                
+                let subtasksHtml = '';
+                if(task.subtasks && task.subtasks.length > 0) {
+                    subtasksHtml = `<div class="mt-4 mb-3 border border-slate-200 rounded-md bg-white p-4 space-y-3 shadow-sm">
+                        <p class="text-xs font-black text-slate-500 mb-2 uppercase tracking-wider border-b border-slate-100 pb-2">👇 具体的な実行手順 (迷ったらAIにコピペ！)</p>`;
+                    task.subtasks.forEach(st => {
+                        const stChecked = subtaskCompletion[st.id] ? 'checked' : '';
+                        subtasksHtml += `
+                            <label class="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors group">
+                                <input type="checkbox" id="sub-${st.id}" class="subtask-checkbox mt-1 mr-3 w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-500" onchange="toggleSubtask('${st.id}', '${task.id}', event)" ${stChecked}>
+                                <span class="text-sm text-slate-700 leading-relaxed group-hover:text-slate-900">${st.text}</span>
+                            </label>
+                        `;
+                    });
+                    subtasksHtml += `</div>`;
+                }
+
+                let resourcesHtml = '';
+                if(task.resources && task.resources.length > 0) {
+                    resourcesHtml = `<div class="mb-2">
+                        <p class="text-xs font-black text-slate-500 mb-2 uppercase tracking-wider">📚 参考・助け舟リンク</p>
+                        <div class="flex flex-wrap gap-2">`;
+                    task.resources.forEach(res => {
+                        let icon = res.type === 'YouTube' ? '▶️' : (res.type === 'Book' ? '📖' : '📄');
+                        resourcesHtml += `
+                            <a href="${res.url}" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md border border-slate-200 hover:border-blue-300 transition-all shadow-sm">
+                                <span class="mr-1.5 text-sm">${icon}</span> ${res.title}
+                            </a>
+                        `;
+                    });
+                    resourcesHtml += `</div></div>`;
+                }
+
+                const taskHtml = `
+                    <div class="border-b border-slate-100">
+                        <div class="flex items-start p-5 hover:bg-slate-50 cursor-pointer transition-colors group" onclick="toggleDetails('${task.id}')">
+                            <div class="flex-shrink-0 mt-1" onclick="event.stopPropagation()">
+                                <input type="checkbox" id="task-${task.id}" class="task-checkbox w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" onchange="toggleTask('${task.id}', event)" ${isChecked}>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center flex-wrap gap-y-2">
+                                        <span class="px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-xs font-black mr-3 shadow-sm whitespace-nowrap">${task.weeks}</span>
+                                        <span class="text-base font-bold text-slate-800 group-hover:text-blue-700 transition-colors task-title">${task.title}</span>
+                                        ${securityBadge}
+                                    </div>
+                                    <div class="chevron text-slate-400 bg-white border border-slate-200 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" id="chevron-${task.id}">▼</div>
+                                </div>
+                                <div class="mt-2 flex items-center text-xs font-medium text-slate-500 space-x-4">
+                                    <span class="flex items-center bg-slate-100 px-2 py-1 rounded-md"><span class="mr-1.5 text-slate-400">⏱️</span> ${task.hours.toFixed(1)} 時間</span>
+                                    <span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded-md text-slate-600">${task.category}担当</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="details-${task.id}" class="task-details px-6 pb-6 ml-10 border-l-4 border-blue-200 bg-slate-50/80 rounded-br-lg">
+                            ${subtasksHtml}
+                            ${resourcesHtml}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', taskHtml);
+            });
+            
+            if(data.tasks.length > 0) {
+                 toggleDetails(data.tasks[0].id);
+            }
+        }
+
+        window.selectPhase = function(phaseKey) {
+            currentPhase = phaseKey;
+            document.querySelectorAll('.phase-btn').forEach(btn => {
+                btn.className = 'phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-slate-200 bg-white text-slate-500 hover:border-blue-300';
+            });
+            const activeBtn = document.getElementById(`btn-${phaseKey}`);
+            activeBtn.className = 'phase-btn relative z-10 flex-1 m-1 py-3 px-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 border-blue-600 bg-blue-50 text-blue-800 shadow-md';
+            renderTasks(phaseKey);
+        };
+
+        function initCharts() {
+            const categoryTotals = { Dev: 0, Security: 0, Business: 0, Sales: 0, Marketing: 0, Planning: 0 };
+            Object.values(projectData).flatMap(p => p.tasks).forEach(t => {
+                if(categoryTotals[t.category] !== undefined) categoryTotals[t.category] += t.hours;
+            });
+
+            const ctxAlloc = document.getElementById('allocationChart').getContext('2d');
+            chartsObj.alloc = new Chart(ctxAlloc, {
+                type: 'doughnut',
+                data: {
+                    labels: ['AIにお願いする(開発)', 'ルール確認(セキュリティ)', 'お客様と話す(営業/納品)', '全体計画'],
+                    datasets: [{
+                        data: [
+                            categoryTotals.Dev, 
+                            categoryTotals.Security, 
+                            categoryTotals.Sales + categoryTotals.Business + categoryTotals.Marketing, 
+                            categoryTotals.Planning
+                        ],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                        borderWidth: 0, hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11, family: "'Noto Sans JP'" } } },
+                        tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.parsed + '時間'; } } }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            const ctxSales = document.getElementById('salesChart').getContext('2d');
+            chartsObj.sales = new Chart(ctxSales, {
+                type: 'bar',
+                data: {
+                    labels: ['3月(準備)', '4月(初契約)', '5月(大型受注)', '6月(目標達成)'],
+                    datasets: [{
+                        label: '今月の目標額 (万円)',
+                        data: [0, 80, 250, 500],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    },
+                    {
+                        type: 'line',
+                        label: '累積(順調な場合)',
+                        data: [0, 80, 330, 830],
+                        borderColor: '#f59e0b',
+                        borderWidth: 2, fill: false, tension: 0.3, pointBackgroundColor: '#f59e0b'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Noto Sans JP'" } } },
+                        x: { grid: { display: false }, ticks: { font: { family: "'Noto Sans JP'" } } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11, family: "'Noto Sans JP'" } } }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            selectPhase('march');
+            updateOverallProgress();
+            initCharts();
+        });
+
+    </script>
+</body>
+</html>
